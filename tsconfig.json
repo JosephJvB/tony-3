@@ -9,6 +9,7 @@
     "declaration": true,
     "strict": true,
     "noImplicitAny": true,
+    "skipLibCheck": true, // speeds up build 50%, 8sec -> 4sec. Does not improve test speed
     "strictNullChecks": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
@@ -20,12 +21,14 @@
     "inlineSources": true,
     "experimentalDecorators": true,
     "strictPropertyInitialization": false,
+    "outDir": "dist",
     "typeRoots": [
       "./node_modules/@types"
     ]
   },
   "exclude": [
     "node_modules",
-    "cdk.out"
+    "cdk.out",
+    "dist"
   ]
 }
