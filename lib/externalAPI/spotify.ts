@@ -1,9 +1,16 @@
 import { MISSING_TRACKS_LINK } from './googleSheets'
-import { SSM_PARAMS } from './ssm'
+import { SSM_PARAMS } from '../aws/ssm'
+import {
+  extractSpotifyId,
+  idToUri,
+  normalizeArtistName,
+  normalizeLink,
+  normalizeTrackName,
+  normalizeYear,
+} from '../stringUtilities/spotifyStringUtil'
+import { YoutubeTrack } from '../stringUtilities/youtubeStringUtil'
 
 export const SPOTIFY_JVB_USERID = 'xnmacgqaaa6a1xi7uy2k1fe7w'
-export const SPOTIFY_ID_LENGTH = 22
-export const SPOTIFY_DOMAIN = 'open.spotify.com'
 export const SPOTIFY_REQUIRED_SCOPES = [
   'playlist-modify-private',
   'playlist-modify-public',
@@ -15,15 +22,6 @@ export const PLAYLIST_DESCRIPTION = `missing tracks list: ${MISSING_TRACKS_LINK}
 
 export const API_BASE_URL = 'https://api.spotify.com/v1'
 export const ACCOUNTS_BASE_URL = 'https://accounts.spotify.com/api'
-
-const FEATURE_PREFIXES = [
-  ' ft. ',
-  ' ft ',
-  ' feat. ',
-  ' feat ',
-  ' prod. ',
-  ' prod ',
-]
 
 export type SpotifySearchParams = {
   // album, artist, track, year, upc, tag:hipster, tag:new, isrc, genre
@@ -159,7 +157,7 @@ export const getTracks = async (trackIds: string[]) => {
 }
 
 export const findTrack = async (
-  track: any, // TODO: correct type
+  track: Omit<YoutubeTrack, 'year'> & { year: number | undefined },
   retry = true
 ): Promise<SearchResults<SpotifyTrack>> => {
   const { name, artist, link, year } = track
@@ -196,11 +194,10 @@ export const findTrack = async (
     return findTrack(
       {
         ...track,
-        // TODO: fix types
-        name: normalizeTrackName(track as any),
-        artist: normalizeArtistName(track as any),
-        year: normalizeYear(track as any) as any,
-        link: normalizeLink(track as any),
+        name: normalizeTrackName(track as YoutubeTrack),
+        artist: normalizeArtistName(track as YoutubeTrack),
+        year: normalizeYear(track as YoutubeTrack),
+        link: normalizeLink(track as YoutubeTrack),
       },
       false // do not retry again
     )
@@ -336,117 +333,4 @@ export const updatePlaylistDescription = async (
     }),
   })
 }
-
-export const idToUri = (id: string, type: 'track') => {
-  if (id.length !== SPOTIFY_ID_LENGTH) {
-    throw new Error(`invalid spotify id ${JSON.stringify({ id })}`)
-  }
-
-  return `spotify:${type}:${id}`
-}
-
-// https://open.spotify.com/track/1nxudYVyc5RLm8LrSMzeTa?si=-G3WGzRgTDq8OuRa688FMg
-// https://open.spotify.com/album/3BFHembK3fNseQR5kAEE2I
-export const extractSpotifyId = (link: string, type: 'album' | 'track') => {
-  if (!link) {
-    return null
-  }
-
-  let url: URL | null = null
-
-  try {
-    url = new URL(link)
-  } catch {}
-
-  if (url === null) {
-    return null
-  }
-
-  if (url.host !== SPOTIFY_DOMAIN) {
-    return null
-  }
-
-  const [urlType, id] = url.pathname.split('/').slice(1)
-
-  if (urlType !== type) {
-    return null
-  }
-
-  if (id.length !== SPOTIFY_ID_LENGTH) {
-    throw new Error(`failed to parse trackId ${JSON.stringify({ link, id })}`)
-  }
-
-  return id
-}
-
-export const getYearFromPlaylistName = (name: string) => {
-  if (!name.startsWith(PLAYLIST_NAME_PREFIX)) {
-    return null
-  }
-
-  let year: number | null = null
-
-  try {
-    year = parseInt(name.replace(PLAYLIST_NAME_PREFIX, ''))
-  } catch {}
-
-  return year
-}
-
-// TODO: any
-export const normalizeArtistName = (track: any) => {
-  let normalized = track.artist
-    .replace(/ & /g, ' ')
-    .replace(/ and /g, ' ')
-    .replace(/, /g, ' ')
-    .replace(/ \/ /gi, ' ')
-    .replace(/ \+ /gi, ' ')
-    .replace(/ x /gi, ' ')
-    .replace(/"/g, '')
-    .replace(/'/g, '')
-
-  return normalized
-}
-
-// TODO: any
-export const normalizeTrackName = (track: any) => {
-  let normalized = track.name
-    .replace(/"/g, '')
-    .replace(/'/g, '')
-    // probably need to review these replacements
-    // likely ["/", ",", "&"] in trackname means tony's linked multiple tracks
-    .replace(/\//g, '')
-    .replace(/\\/g, '')
-  // // https://stackoverflow.com/questions/4292468/javascript-regex-remove-text-between-parentheses#answer-4292483
-  // .replace(/ *\([^)]*\)*/g, '')
-
-  // prefer this:
-  const openParensIdx = normalized.indexOf('(')
-  const closeParensIdx = normalized.lastIndexOf(')')
-  if (openParensIdx !== -1 && closeParensIdx !== -1) {
-    const first = normalized.substring(0, openParensIdx).trim()
-    const second = normalized.substring(closeParensIdx + 1)
-    normalized = first + second
-  }
-
-  FEATURE_PREFIXES.forEach((pref) => {
-    const ftIdx = normalized.toLowerCase().indexOf(pref)
-    if (ftIdx !== -1) {
-      normalized = normalized.substring(0, ftIdx)
-    }
-  })
-
-  return normalized
-}
-
-// TODO: any
-export const normalizeYear = (track: any) => {
-  // widen search by omitting year
-  return undefined
-}
-
-// TODO: any
-export const normalizeLink = (track: any) => {
-  // widen search by omitting link
-  return ''
-}
+export { extractSpotifyId }

@@ -1,4 +1,4 @@
-import { SSM_PARAMS } from './ssm'
+import { SSM_PARAMS } from '../aws/ssm'
 
 export const YOUTUBE_PLAYIST_ID = 'PLP4CSgl7K7or84AAhr7zlLNpghEnKWu2c'
 

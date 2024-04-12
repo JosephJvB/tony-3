@@ -1,5 +1,5 @@
 import { google, sheets_v4 } from 'googleapis'
-import { SSM_PARAMS } from './ssm'
+import { SSM_PARAMS } from '../aws/ssm'
 
 export const BASE_SHEET_URL = 'https://docs.google.com/spreadsheets/d'
 export const SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
@@ -54,19 +54,19 @@ export const trackToRow = (track: GoogleSheetTrack): string[] => [
   track.link,
   track.spotify_ids,
 ]
-export type ParsedVideo = {
+export type GoogleSheetYTVideo = {
   id: string
   title: string
   published_at: string
   total_tracks: string
 }
-export const rowToVideo = (row: string[]): ParsedVideo => ({
+export const rowToVideo = (row: string[]): GoogleSheetYTVideo => ({
   id: row[0],
   title: row[1],
   published_at: row[2],
   total_tracks: row[3],
 })
-export const videoToRow = (video: ParsedVideo): string[] => [
+export const videoToRow = (video: GoogleSheetYTVideo): string[] => [
   video.id,
   video.title,
   video.published_at,
